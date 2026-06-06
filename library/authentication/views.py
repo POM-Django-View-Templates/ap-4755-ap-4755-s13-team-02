@@ -65,7 +65,7 @@ def logout_user(request):
 def user_list(request):
     # Перевірка чи роль == 1 (librarian)
     if request.user.role != 1:
-        return render(request, "authentication/access_denied.html")
+        return redirect("book_list")
 
     users = CustomUser.get_all()
     return render(request, "authentication/user_list.html", {"users": users})

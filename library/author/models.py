@@ -3,17 +3,18 @@ from django.db import models
 
 class Author(models.Model):
     """
-        This class represents an Author. \n
-        Attributes:
-        -----------
-        param name: Describes name of the author
-        type name: str max_length=20
-        param surname: Describes last name of the author
-        type surname: str max_length=20
-        param patronymic: Describes middle name of the author
-        type patronymic: str max_length=20
+    This class represents an Author. \n
+    Attributes:
+    -----------
+    param name: Describes name of the author
+    type name: str max_length=20
+    param surname: Describes last name of the author
+    type surname: str max_length=20
+    param patronymic: Describes middle name of the author
+    type patronymic: str max_length=20
 
     """
+
     name = models.CharField(max_length=20)
     surname = models.CharField(max_length=20)
     patronymic = models.CharField(max_length=20)
@@ -23,7 +24,7 @@ class Author(models.Model):
         Magic method is redefined to show all information about Author.
         :return: author id, author name, author surname, author patronymic
         """
-        return f"{self.id} {self.name} {self.surname} {self.patronymic}"
+        return f"'id': {self.id}, 'name': '{self.name}', 'surname': '{self.surname}', 'patronymic': '{self.patronymic}'"
 
     def __repr__(self):
         """
@@ -67,9 +68,19 @@ class Author(models.Model):
         type patronymic: str max_length=20
         :return: a new author object which is also written into the DB
         """
-        author = Author(name=name, surname=surname, patronymic=patronymic)
-        author.save()
-        return author
+        if name and len(name) > 20:
+            return None
+        if surname and len(surname) > 20:
+            return None
+        if patronymic and len(patronymic) > 20:
+            return None
+
+        try:
+            author = Author(name=name, surname=surname, patronymic=patronymic)
+            author.save()
+            return author
+        except Exception:
+            return None
 
     def to_dict(self):
         """
@@ -83,16 +94,13 @@ class Author(models.Model):
         | }
         """
         return {
-            'id': self.id,
-            'name': self.name,
-            'surname': self.surname,
-            'patronymic': self.patronymic
+            "id": self.id,
+            "name": self.name,
+            "surname": self.surname,
+            "patronymic": self.patronymic,
         }
 
-    def update(self,
-               name=None,
-               surname=None,
-               patronymic=None):
+    def update(self, name=None, surname=None, patronymic=None):
         """
         Updates author in the database with the specified parameters.
         param name: Describes name of the author
@@ -103,11 +111,18 @@ class Author(models.Model):
         type patronymic: str max_length=20
         :return: None
         """
-        if name is not None:
+        if name and len(name) > 20:
+            return
+        if surname and len(surname) > 20:
+            return
+        if patronymic and len(patronymic) > 20:
+            return
+
+        if name:
             self.name = name
-        if surname is not None:
+        if surname:
             self.surname = surname
-        if patronymic is not None:
+        if patronymic:
             self.patronymic = patronymic
         self.save()
 

@@ -8,13 +8,19 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
+
     <div class="navbar">
-        <a href="#" class="navbar-brand">Бібліотека</a>
+        <a href="{% url 'book_list' %}" class="navbar-brand"> Бібліотека</a>
 
         {% if request.user.is_authenticated %}
+
+            <a href="{% url 'book_list' %}">Книги</a>
+            <a href="{% url 'order_list' %}">Замовлення</a>
+
             {% if request.user.role == 1 %}
                 <a href="{% url 'user_list' %}">Користувачі</a>
                 <a href="{% url 'author_list' %}">Автори</a>
+                <a href="{% url 'book_create' %}">Додати книгу</a>
             {% endif %}
 
             <div class="navbar-right">
@@ -24,6 +30,7 @@
                     <button type="submit">Вийти</button>
                 </form>
             </div>
+
         {% else %}
             <div class="navbar-right">
                 <a href="{% url 'login_user' %}">Увійти</a>
@@ -35,5 +42,6 @@
     <div class="content">
         {% block content %}{% endblock %}
     </div>
+
 </body>
 </html>
