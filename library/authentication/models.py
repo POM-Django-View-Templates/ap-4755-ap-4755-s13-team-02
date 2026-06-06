@@ -1,36 +1,58 @@
-from django.contrib.auth.base_user import AbstractBaseUser
+from django.db import models
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 
 ROLE_CHOICES = (
-    (0, 'visitor'),
-    (1, 'admin'),
+    (0, "user"),
+    (1, "librarian"),
 )
+
+
+class CustomUserManager(BaseUserManager):
+    def get_by_natural_key(self, email):
+        return self.get(email=email)
 
 
 class CustomUser(AbstractBaseUser):
     """
-        This class represents a basic user. \n
-        Attributes:
-        -----------
-        param first_name: Describes first name of the user
-        type first_name: str max length=20
-        param last_name: Describes last name of the user
-        type last_name: str max length=20
-        param middle_name: Describes middle name of the user
-        type middle_name: str max length=20
-        param email: Describes the email of the user
-        type email: str, unique, max length=100
-        param password: Describes the password of the user
-        type password: str
-        param created_at: Describes the date when the user was created. Can't be changed.
-        type created_at: int (timestamp)
-        param updated_at: Describes the date when the user was modified
-        type updated_at: int (timestamp)
-        param role: user role, default role (0, 'visitor')
-        type updated_at: int (choices)
-        param is_active: user role, default value False
-        type updated_at: bool
+    This class represents a basic user. \n
+    Attributes:
+    -----------
+    param first_name: Describes first name of the user
+    type first_name: str max length=20
+    param last_name: Describes last name of the user
+    type last_name: str max length=20
+    param middle_name: Describes middle name of the user
+    type middle_name: str max length=20
+    param email: Describes the email of the user
+    type email: str, unique, max length=100
+    param password: Describes the password of the user
+    type password: str
+    param created_at: Describes the date when the user was created. Can't be changed.
+    type created_at: int (timestamp)
+    param updated_at: Describes the date when the user was modified
+    type updated_at: int (timestamp)
+    param role: user role, default role (0, 'visitor')
+    type updated_at: int (choices)
+    param is_active: user role, default value False
+    type updated_at: bool
 
     """
+
+    first_name = models.CharField(max_length=20, null=True, blank=True)
+    last_name = models.CharField(max_length=20, null=True, blank=True)
+    middle_name = models.CharField(max_length=20, null=True, blank=True)
+    email = models.EmailField(max_length=100, unique=True)
+
+    # password field is automatically provided by AbstractBaseUser
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    role = models.IntegerField(choices=ROLE_CHOICES, default=0)
+    is_active = models.BooleanField(default=True)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = "email"
 
     def __str__(self):
         """
@@ -39,12 +61,16 @@ class CustomUser(AbstractBaseUser):
                  user email, user password, user updated_at, user created_at,
                  user role, user is_active
         """
+        created = int(self.created_at.timestamp()) if self.created_at else None
+        updated = int(self.updated_at.timestamp()) if self.updated_at else None
+        return f"'id': {self.id}, 'first_name': '{self.first_name}', 'middle_name': '{self.middle_name}', 'last_name': '{self.last_name}', 'email': '{self.email}', 'created_at': {created}, 'updated_at': {updated}, 'role': {self.role}, 'is_active': {self.is_active}"
 
     def __repr__(self):
         """
         This magic method is redefined to show class and id of CustomUser object.
         :return: class, id
         """
+        return f"{self.__class__.__name__}(id={self.id})"
 
     @staticmethod
     def get_by_id(user_id):
@@ -52,6 +78,10 @@ class CustomUser(AbstractBaseUser):
         :param user_id: SERIAL: the id of a user to be found in the DB
         :return: user object or None if a user with such ID does not exist
         """
+        try:
+            return CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            return None
 
     @staticmethod
     def get_by_email(email):
@@ -61,6 +91,10 @@ class CustomUser(AbstractBaseUser):
         :type email: str
         :return: user object or None if a user with such ID does not exist
         """
+        try:
+            return CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return None
 
     @staticmethod
     def delete_by_id(user_id):
@@ -69,6 +103,11 @@ class CustomUser(AbstractBaseUser):
         :type user_id: int
         :return: True if object existed in the db and was removed or False if it didn't exist
         """
+        user = CustomUser.get_by_id(user_id)
+        if user:
+            user.delete()
+            return True
+        return False
 
     @staticmethod
     def create(email, password, first_name=None, middle_name=None, last_name=None):
@@ -85,6 +124,27 @@ class CustomUser(AbstractBaseUser):
         :type password: str
         :return: a new user object which is also written into the DB
         """
+        if first_name and len(first_name) > 20:
+            return None
+        if last_name and len(last_name) > 20:
+            return None
+        if middle_name and len(middle_name) > 20:
+            return None
+        if not email or "@" not in email:
+            return None
+
+        try:
+            user = CustomUser(
+                email=email,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+            )
+            user.set_password(password)
+            user.save()
+            return user
+        except Exception:
+            return None
 
     def to_dict(self):
         """
@@ -103,14 +163,27 @@ class CustomUser(AbstractBaseUser):
         |   'is_active:' True
         | }
         """
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "middle_name": self.middle_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "created_at": int(self.created_at.timestamp()) if self.created_at else None,
+            "updated_at": int(self.updated_at.timestamp()) if self.updated_at else None,
+            "role": self.role,
+            "is_active": self.is_active,
+        }
 
-    def update(self,
-               first_name=None,
-               last_name=None,
-               middle_name=None,
-               password=None,
-               role=None,
-               is_active=None):
+    def update(
+        self,
+        first_name=None,
+        last_name=None,
+        middle_name=None,
+        password=None,
+        role=None,
+        is_active=None,
+    ):
         """
         Updates user profile in the database with the specified parameters.\n
         :param first_name: first name of a user
@@ -127,14 +200,29 @@ class CustomUser(AbstractBaseUser):
         :type is_active: bool
         :return: None
         """
+        if first_name is not None:
+            self.first_name = first_name
+        if last_name is not None:
+            self.last_name = last_name
+        if middle_name is not None:
+            self.middle_name = middle_name
+        if password is not None:
+            self.set_password(password)
+        if role is not None:
+            self.role = role
+        if is_active is not None:
+            self.is_active = is_active
+        self.save()
 
     @staticmethod
     def get_all():
         """
         returns data for json request with QuerySet of all users
         """
+        return CustomUser.objects.all()
 
     def get_role_name(self):
         """
         returns str role name
         """
+        return dict(ROLE_CHOICES).get(self.role, "user")
